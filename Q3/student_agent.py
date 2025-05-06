@@ -1,11 +1,30 @@
 import gymnasium as gym
 import numpy as np
+import torch
+from train import PolicyNetwork
 
-# Do not modify the input of the 'act' function and the '__init__' function. 
 class Agent(object):
-    """Agent that acts randomly."""
     def __init__(self):
-        self.action_space = gym.spaces.Box(-1.0, 1.0, (21,), np.float64)
-
+        self.state_dim = 67
+        self.action_dim = 21
+        self.device = torch.device("cpu")
+        
+        self.policy = PolicyNetwork(self.state_dim, self.action_dim)
+        
+        # self.load_model("models/train_3_ep3500.pth")
+        self.load_model("best_weight.pth")
+        
+        self.policy.eval()
+    
+    def load_model(self, path):
+        state_dict = torch.load(path, map_location=self.device)
+        actor_state = state_dict['actor']
+        self.policy.load_state_dict(actor_state)
+    
     def act(self, observation):
-        return self.action_space.sample()
+        state = torch.FloatTensor(observation).unsqueeze(0)
+        
+        with torch.no_grad():
+            action, _ = self.policy(state)
+        
+        return action.numpy().flatten()
